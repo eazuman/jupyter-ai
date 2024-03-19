@@ -1,6 +1,7 @@
 import logging
 import re
 import time
+import os
 
 from dask.distributed import Client as DaskClient
 from importlib_metadata import entry_points
@@ -126,7 +127,7 @@ class AiExtension(ExtensionApp):
         config=True,
     )
 
-    default_api_keys = Dict(
+    _default_api_keys = Dict(
         key_trait=Unicode(),
         value_trait=Unicode(),
         default_value=None,
@@ -137,6 +138,27 @@ class AiExtension(ExtensionApp):
         """,
         config=True,
     )
+    env_variables = [
+        "OPENAI_API_KEY",
+        "AI21_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "COHERE_API_KEY",
+        "HUGGINGFACEHUB_API_TOKEN",
+        "TOGETHER_API_KEY",
+        "AZURE_OPENAI_API_KEY",
+    ]
+
+    def _get_default_api_keys(self):
+        """Get default API keys from environment variables if not explicitly set."""
+        default_api_keys = self._default_api_keys
+        if default_api_keys is None:
+            default_api_keys = {}
+            for env_var in self.env_variables:
+                if env_var in os.environ:
+                    default_api_keys[env_var] = os.environ[env_var]
+        return default_api_keys
+
+    default_api_keys = property(_get_default_api_keys)
 
     def initialize_settings(self):
         start = time.time()
